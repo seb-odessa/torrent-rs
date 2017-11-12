@@ -1,5 +1,6 @@
 extern crate serde_bencode;
 extern crate serde_bytes;
+extern crate time;
 #[macro_use]
 extern crate serde_derive;
 
