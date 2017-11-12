@@ -4,8 +4,14 @@ version = "0.1.0"
 authors = ["seb-odessa <seb@ukr.net>"]
 
 [dependencies]
+    url = "*"
+    rand = "*"
     time = "*"
     serde = "*"
+    hyper = "*"
+    futures = "*"
+    tokio-core = "*"
+    rust-crypto = "*"
     serde_bytes = "*"
     serde_derive = "*"
     serde_bencode = { git = "https://github.com/seb-odessa/serde-bencode.git" }
