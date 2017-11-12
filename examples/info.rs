@@ -5,8 +5,8 @@ use std::io;
 
 fn main() {
     let stdin = io::stdin();
-    let mut buffer = Vec::new();
     let mut handle = stdin.lock();
+    let mut buffer = Vec::new();
     match handle.read_to_end(&mut buffer) {
         Ok(_) => {
             match Metainfo::from(&buffer) {
@@ -15,6 +15,5 @@ fn main() {
             }
         }
         Err(e) => println!("ERROR: {:?}", e),
-
     }
 }
