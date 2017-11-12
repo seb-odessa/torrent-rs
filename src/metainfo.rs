@@ -34,34 +34,34 @@ impl fmt::Display for Metainfo {
         writeln!(fmt, "name:\t\t{}", self.info.name)?;
         writeln!(
             fmt,
-            "announce:\t{:?}",
+            "announce:\t{}",
             self.announce.clone().unwrap_or_default()
         )?;
         writeln!(fmt, "nodes:\t\t{:?}", self.nodes)?;
         if let &Some(ref al) = &self.announce_list {
             for a in al {
-                writeln!(fmt, "announce list:\t{}", a[0])?;
+                writeln!(fmt, "announce:\t{}", a[0])?;
             }
         }
         writeln!(fmt, "httpseeds:\t{:?}", self.httpseeds)?;
         writeln!(
             fmt,
             "creation date:\t{}",
-            at(Timespec::new(self.creation_date.unwrap_or_default(), 0)).ctime()
+            at(Timespec::new(self.creation_date.unwrap_or_default(), 0)).asctime()
         )?;
         writeln!(
             fmt,
-            "comment:\t{:?}",
+            "comment:\t{}",
             self.comment.clone().unwrap_or_default()
         )?;
         writeln!(
             fmt,
-            "created by:\t{:?}",
+            "created by:\t{}",
             self.created_by.clone().unwrap_or_default()
         )?;
         writeln!(
             fmt,
-            "encoding:\t{:?}",
+            "encoding:\t{}",
             self.encoding.clone().unwrap_or_default()
         )?;
         writeln!(fmt, "piece length:\t{:?}", self.info.piece_length)?;
