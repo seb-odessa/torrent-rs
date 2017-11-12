@@ -1,15 +1,11 @@
-extern crate hyper;
-extern crate tokio_core;
 extern crate torrent;
+extern crate reqwest;
 extern crate url;
 
 use torrent::Metainfo;
 
 use std::io;
 use std::io::Read;
-use tokio_core::reactor::Core;
-use hyper::Client;
-use hyper::header::Connection;
 use url::percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
 
 fn main() {
@@ -49,16 +45,12 @@ fn run(metainfo: &Metainfo, id: &str) {
     tracker(&url).unwrap();
 }
 
-fn tracker(url: &str)->Result<Vec<u8>, hyper::Error>{
-//    let uri = url.parse()?;
-    let mut core = Core::new()?;
-    let client = Client::new(&core.handle());
-    // let response = client.get(uri).header(Connection::close()).send()?;
-    // println!("http response: {:?}", &response);
-
+fn tracker(url: &str)->Result<Vec<u8>, reqwest::Error> {
+    let mut response = reqwest::get(url)?;
     let mut body = Vec::new();
-    // response.read_to_end(&mut body)?;
-    println!("body.len(): {:?}", body.len());
+    response.copy_to(&mut body)?;
+    println!("body.len(): {}", body.len());
+    println!("body: {:?}", body);
     Ok(body)
 }
 
