@@ -1,11 +1,14 @@
 extern crate torrent;
 extern crate reqwest;
+extern crate serde_bencode;
 extern crate url;
 
 use torrent::Metainfo;
 
 use std::io;
+use std::convert;
 use std::io::Read;
+
 use url::percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
 
 fn main() {
@@ -43,28 +46,18 @@ fn run(metainfo: &Metainfo, id: &str) {
         ("port", "6881"),
     ];
     let url = format!("{}?{}", &announce, encode_query_params(&params));
-    println!("url: {}", &url);
+    println!("URL: {}", &url);
     tracker(&url).unwrap();
 }
 
-fn tracker(url: &str) -> Result<Vec<u8>, reqwest::Error> {
+fn tracker(url: &str) -> Result<Vec<u8>, Error> {
     let mut response = reqwest::get(url)?;
     let mut body = Vec::new();
     response.copy_to(&mut body)?;
-    println!("Status: {}", response.status());
-
     if reqwest::StatusCode::Ok == response.status() {
-        println!("body.len(): {}", body.len());
-        let r = torrent::Response::from(&body);
-        println!("{:?}", r);
-
-        use std::io::prelude::*;
-        use std::fs::File;
-        let mut buffer = File::create("response.bin").unwrap();
-        buffer.write(&body).unwrap();
+        let r = torrent::Response::from(&body)?;
+        println!("Tracker Response:\n{}", r);
     }
-
-    //println!("body: {:?}", body);
     Ok(body)
 }
 
@@ -74,4 +67,29 @@ fn encode_query_params(params: &[(&str, &str)]) -> String {
         .map(|&(k, v)| format!("{}={}", k, v))
         .collect();
     param_strings.join("&")
+}
+
+#[derive(Debug)]
+pub enum Error {
+    ReqwestError(reqwest::Error),
+    DecoderError(serde_bencode::Error),
+    IoError(io::Error),
+}
+
+impl convert::From<serde_bencode::Error> for Error {
+    fn from(err: serde_bencode::Error) -> Error {
+        Error::DecoderError(err)
+    }
+}
+
+impl convert::From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Error {
+        Error::ReqwestError(err)
+    }
+}
+
+impl convert::From<io::Error> for Error {
+    fn from(err: io::Error) -> Error {
+        Error::IoError(err)
+    }
 }
