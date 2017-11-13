@@ -13,15 +13,17 @@ fn main() {
     let mut handle = stdin.lock();
     let mut buffer = Vec::new();
     match handle.read_to_end(&mut buffer) {
-        Ok(_) => match Metainfo::from(&buffer) {
-            Ok(metainfo) => {
-                println!("{}", &metainfo);
-                let id = torrent::generate_peer_id();
-                println!("Peer Id: {}", id);
-                run(&metainfo, &id);
+        Ok(_) => {
+            match Metainfo::from(&buffer) {
+                Ok(metainfo) => {
+                    println!("{}", &metainfo);
+                    let id = torrent::generate_peer_id();
+                    println!("Peer Id: {}", id);
+                    run(&metainfo, &id);
+                }
+                Err(e) => println!("ERROR: {:?}", e),
             }
-            Err(e) => println!("ERROR: {:?}", e),
-        },
+        }
         Err(e) => println!("ERROR: {:?}", e),
     }
 }
@@ -45,12 +47,24 @@ fn run(metainfo: &Metainfo, id: &str) {
     tracker(&url).unwrap();
 }
 
-fn tracker(url: &str)->Result<Vec<u8>, reqwest::Error> {
+fn tracker(url: &str) -> Result<Vec<u8>, reqwest::Error> {
     let mut response = reqwest::get(url)?;
     let mut body = Vec::new();
     response.copy_to(&mut body)?;
-    println!("body.len(): {}", body.len());
-    println!("body: {:?}", body);
+    println!("Status: {}", response.status());
+
+    if reqwest::StatusCode::Ok == response.status() {
+        println!("body.len(): {}", body.len());
+        let r = torrent::Response::from(&body);
+        println!("{:?}", r);
+
+        use std::io::prelude::*;
+        use std::fs::File;
+        let mut buffer = File::create("response.bin").unwrap();
+        buffer.write(&body).unwrap();
+    }
+
+    //println!("body: {:?}", body);
     Ok(body)
 }
 

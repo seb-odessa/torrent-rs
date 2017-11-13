@@ -9,9 +9,11 @@ extern crate time;
 mod hash;
 mod info;
 mod metainfo;
+mod response;
 pub use info::File;
 pub use info::Info;
 pub use metainfo::Metainfo;
+pub use response::Response;
 
 use rand::Rng;
 pub fn generate_peer_id() -> String {
