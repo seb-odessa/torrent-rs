@@ -2,45 +2,67 @@ use std::fmt;
 use serde_bencode::{de, Error};
 use std::ffi::CString;
 
+const BYTES_PER_PEER: usize = 6;
+
+#[derive(Debug)]
+pub struct Peer {
+    host: String,
+    port: u32,
+}
+impl Peer {
+    pub fn from(chunk: &[u8]) -> Result<Self, Error> {
+        if chunk.len() != BYTES_PER_PEER {
+            Err(Error::Custom(
+                String::from("Chunk length is not equal to BYTES_PER_PEER"),
+            ))
+        } else {
+            Ok(Peer {
+                host: format!("{}.{}.{}.{}", chunk[0], chunk[1], chunk[2], chunk[3]),
+                port: 0xFF * chunk[4] as u32 + chunk[5] as u32,
+            })
+        }
+    }
+}
+impl fmt::Display for Peer {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(fmt, "{}:{}", self.host, self.port)
+    }
+}
+
+
 #[derive(Debug)]
 pub struct Response {
     pub interval: i64,
     pub complete: i64,
     pub incomplete: i64,
-    pub peers: Vec<String>,
+    pub peers: Vec<Peer>,
 }
-
 impl Response {
     pub fn from(buffer: &[u8]) -> Result<Self, Error> {
         let response = de::from_bytes::<ResponseCompact>(&buffer)?;
-        Ok(Response {
-            interval: response.interval.unwrap_or_default(),
-            complete: response.complete.unwrap_or_default(),
-            incomplete: response.incomplete.unwrap_or_default(),
-            peers: Self::get_peers(&response),
-        })
+        if let Some(failure) = response.failure_reason {
+            Err(Error::Custom(failure))
+        } else {
+            Ok(Response {
+                interval: response.interval.unwrap_or_default(),
+                complete: response.complete.unwrap_or_default(),
+                incomplete: response.incomplete.unwrap_or_default(),
+                peers: Self::peers(&response)?,
+            })
+        }
     }
 
-    fn get_peers(response: &ResponseCompact) -> Vec<String> {
+    fn peers(response: &ResponseCompact) -> Result<Vec<Peer>, Error> {
         let mut peers = Vec::new();
-        const BYTES_PER_PEER: usize = 6;
-
         if let Some(ref records) = response.peers {
             let bytes = records.clone().into_bytes();
             let mut it = bytes.chunks(BYTES_PER_PEER);
             while let Some(chunk) = it.next() {
-                let ip = format!(
-                    "{}.{}.{}.{}:{}",
-                    chunk[0],
-                    chunk[1],
-                    chunk[2],
-                    chunk[3],
-                    0xFF * chunk[4] as u32 + chunk[5] as u32
-                );
-                peers.push(ip);
+                let peer = Peer::from(chunk);
+                peers.push(peer?);
             }
         }
-        peers
+        Ok(peers)
     }
 }
 impl fmt::Display for Response {
@@ -51,15 +73,17 @@ impl fmt::Display for Response {
         for peer in &self.peers {
             writeln!(fmt, "\tPeer:\t{}", peer)?;
         }
-        write!(fmt,"")
+        write!(fmt, "")
     }
 }
 
 
 #[derive(Debug, Deserialize)]
 struct ResponseCompact {
-    #[serde(rename = "failure reason")] pub failure_reason: Option<String>,
-    #[serde(rename = "warning message")] pub warning_message: Option<String>,
+    #[serde(rename = "failure reason")]
+    pub failure_reason: Option<String>,
+    #[serde(rename = "warning message")]
+    pub warning_message: Option<String>,
     pub interval: Option<i64>,
     pub complete: Option<i64>,
     pub incomplete: Option<i64>,

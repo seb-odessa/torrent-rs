@@ -44,6 +44,7 @@ fn run(metainfo: &Metainfo, id: &str) {
         ("peer_id", id),
         ("compact", "1"),
         ("port", "6881"),
+        ("ip", "192.168.0.100"),
     ];
     let url = format!("{}?{}", &announce, encode_query_params(&params));
     println!("URL: {}", &url);
@@ -55,8 +56,10 @@ fn tracker(url: &str) -> Result<Vec<u8>, Error> {
     let mut body = Vec::new();
     response.copy_to(&mut body)?;
     if reqwest::StatusCode::Ok == response.status() {
-        let r = torrent::Response::from(&body)?;
-        println!("Tracker Response:\n{}", r);
+        let data = torrent::Response::from(&body)?;
+        println!("Tracker Response:\n{}", data);
+    } else {
+        println!("Tracker Response Status is :{}", response.status());
     }
     Ok(body)
 }

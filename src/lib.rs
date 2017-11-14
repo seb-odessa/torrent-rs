@@ -1,29 +1,29 @@
 extern crate crypto;
 extern crate rand;
 extern crate serde_bencode;
+extern crate reqwest;
+extern crate time;
+extern crate url;
+
 extern crate serde_bytes;
 #[macro_use]
 extern crate serde_derive;
-extern crate time;
 
 mod hash;
 mod info;
 mod metainfo;
 mod response;
+mod tracker;
+
+pub use hash::Sha1;
 pub use info::File;
 pub use info::Info;
-pub use metainfo::Metainfo;
-pub use response::Response;
 
-use rand::Rng;
-pub fn generate_peer_id() -> String {
-    const PEER_ID_PREFIX: &'static str = "-RT0002-";
-    let mut rng = rand::thread_rng();
-    let rand_chars: String = rng.gen_ascii_chars()
-        .take(20 - PEER_ID_PREFIX.len())
-        .collect();
-    format!("{}{}", PEER_ID_PREFIX, rand_chars)
-}
+pub use metainfo::Metainfo;
+pub use response::Peer;
+pub use response::Response;
+pub use tracker::TrackerDaemon;
+pub use tracker::generate_peer_id;
 
 #[cfg(test)]
 mod tests {
