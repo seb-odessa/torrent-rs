@@ -40,7 +40,9 @@ impl TrackerDaemon {
             let announce = metainfo.announce.clone().unwrap_or_default();
             let url = format!("{}?{}", &announce, param.query());
             println!("URL: {}", &url);
-            tracker(&url).unwrap();
+            if let Some(response) = get_peers(&url).ok() {
+                println!("Tracker Response:\n{}", response);
+            }
         }
     }
 }
@@ -52,20 +54,6 @@ impl fmt::Display for TrackerDaemon {
         write!(fmt, "")
     }
 }
-
-fn tracker(url: &str) -> Result<Vec<u8>, Error> {
-    let mut response = reqwest::get(url)?;
-    let mut body = Vec::new();
-    response.copy_to(&mut body)?;
-    if reqwest::StatusCode::Ok == response.status() {
-        let data = Response::from(&body)?;
-        println!("Tracker Response:\n{}", data);
-    } else {
-        println!("Tracker Response Status is :{}", response.status());
-    }
-    Ok(body)
-}
-
 
 #[derive(Debug)]
 struct Params {
@@ -98,8 +86,9 @@ impl Params {
 #[derive(Debug)]
 pub enum Error {
     ReqwestError(reqwest::Error),
+    ReqwestStatus(reqwest::StatusCode),
     DecoderError(serde_bencode::Error),
-    IoError(io::Error),
+    IoError(io::Error)
 }
 
 impl convert::From<serde_bencode::Error> for Error {
@@ -127,4 +116,15 @@ pub fn generate_peer_id() -> String {
         .take(20 - PEER_ID_PREFIX.len())
         .collect();
     format!("{}{}", PEER_ID_PREFIX, rand_chars)
+}
+
+fn get_peers(url: &str) -> Result<Response, Error> {
+    let mut response = reqwest::get(url)?;
+    let mut body = Vec::new();
+    response.copy_to(&mut body)?;
+    if reqwest::StatusCode::Ok == response.status() {
+        Ok(Response::from(&body)?)
+    } else {
+        Err(Error::ReqwestStatus(response.status()))
+    }
 }
