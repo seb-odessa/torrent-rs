@@ -4,6 +4,7 @@ extern crate serde_bencode;
 extern crate reqwest;
 extern crate time;
 extern crate url;
+extern crate rustc_serialize;
 
 extern crate serde_bytes;
 #[macro_use]
@@ -11,6 +12,7 @@ extern crate serde_derive;
 
 mod hash;
 mod info;
+mod params;
 mod metainfo;
 mod response;
 mod tracker;

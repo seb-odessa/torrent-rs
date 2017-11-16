@@ -9,18 +9,15 @@ pub struct Node(String, i64);
 #[derive(Debug, Deserialize)]
 pub struct Metainfo {
     pub info: Info,
-    #[serde(default)] pub announce: Option<String>,
-    #[serde(default)] pub nodes: Option<Vec<Node>>,
-    #[serde(default)] pub encoding: Option<String>,
-    #[serde(default)] pub httpseeds: Option<Vec<String>>,
-    #[serde(default)]
+    pub announce: Option<String>,
+    pub nodes: Option<Vec<Node>>,
+    pub encoding: Option<String>,
+    pub httpseeds: Option<Vec<String>>,
     #[serde(rename = "announce-list")]
     pub announce_list: Option<Vec<Vec<String>>>,
-    #[serde(default)]
     #[serde(rename = "creation date")]
     pub creation_date: Option<i64>,
-    #[serde(rename = "comment")] pub comment: Option<String>,
-    #[serde(default)]
+    pub comment: Option<String>,
     #[serde(rename = "created by")]
     pub created_by: Option<String>,
 }
@@ -66,15 +63,10 @@ impl fmt::Display for Metainfo {
         )?;
         writeln!(fmt, "piece length:\t{:?}", self.info.piece_length)?;
         writeln!(fmt, "length:\t\t{:?}", self.info.length.unwrap_or_default())?;
-        writeln!(fmt, "private:\t{:?}", self.info.private)?;
-        writeln!(fmt, "root hash:\t{:?}", self.info.root_hash)?;
-        writeln!(fmt, "md5sum:\t\t{:?}", self.info.md5sum)?;
-        writeln!(fmt, "path:\t\t{:?}", self.info.path)?;
         if let &Some(ref files) = &self.info.files {
             for f in files {
                 writeln!(fmt, "file path:\t{:?}", f.path)?;
                 writeln!(fmt, "file length:\t{}", f.length)?;
-                writeln!(fmt, "file md5sum:\t{:?}", f.md5sum)?;
             }
         }
         write!(fmt, "")

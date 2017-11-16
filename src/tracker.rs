@@ -2,21 +2,25 @@ use std::io;
 use std::convert;
 use std::fmt;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::collections::HashSet;
 
 use reqwest;
 use rand;
 use rand::Rng;
 use serde_bencode;
-use url::percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
+
+use rustc_serialize::hex::ToHex;
 
 use hash::Sha1;
 use response::{Response, Peer};
 use metainfo::Metainfo;
+use params::Params;
 
 #[derive(Debug)]
 pub struct TrackerDaemon {
     torrents: HashMap<Sha1, Metainfo>,
-    peers: HashMap<Sha1, Peer>,
+    peers: HashMap<Sha1, HashSet<Peer>>,
     peer_id: String,
 }
 impl TrackerDaemon {
@@ -34,14 +38,17 @@ impl TrackerDaemon {
     }
 
     pub fn update(&mut self) {
-        for (_, metainfo) in &self.torrents {
+        for (key, metainfo) in &self.torrents {
             println!("{}", metainfo);
-            let param = Params::from(metainfo, &self.peer_id);
-            let announce = metainfo.announce.clone().unwrap_or_default();
-            let url = format!("{}?{}", &announce, param.query());
-            println!("URL: {}", &url);
-            if let Some(response) = get_peers(&url).ok() {
-                println!("Tracker Response:\n{}", response);
+            if let Some(response) = get_peers_from_anounce(&metainfo, &self.peer_id).ok() {
+                println!("Tracker Response received:\n{}", response);
+                for peer in &response.peers {
+                    println!("Inserting peer {} to the Set.", &peer);
+                    self.peers.entry(key.clone()).or_insert(HashSet::new());
+                    if let Entry::Occupied(mut peers) = self.peers.entry(key.clone()) {
+                        peers.get_mut().insert(peer.clone());
+                    }
+                }
             }
         }
     }
@@ -49,46 +56,23 @@ impl TrackerDaemon {
 impl fmt::Display for TrackerDaemon {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         for (sha1, metainfo) in &self.torrents {
-            writeln!(fmt, "{:?} => {}", sha1, metainfo)?;
+            writeln!(fmt, "SHA1: {} => {}", sha1.to_hex(), metainfo.info.name)?;
+        }
+        for (sha1, peers) in &self.peers {
+            for peer in peers {
+                writeln!(fmt, "SHA1: {:?} => {}", sha1.to_hex(), peer)?;
+            }
         }
         write!(fmt, "")
     }
 }
 
 #[derive(Debug)]
-struct Params {
-    params: HashMap<&'static str, String>,
-}
-impl Params {
-    pub fn from(metainfo: &Metainfo, id: &String) -> Self {
-        let length = metainfo.info.length.unwrap_or_default().to_string();
-        let info_hash = percent_encode(&metainfo.info.sha1(), DEFAULT_ENCODE_SET).to_string();
-        let mut params = HashMap::new();
-        params.insert("left", length);
-        params.insert("info_hash", info_hash);
-        params.insert("downloaded", String::from("0"));
-        params.insert("uploaded", String::from("0"));
-        params.insert("event", String::from("started"));
-        params.insert("peer_id", id.clone());
-        params.insert("compact", String::from("1"));
-        params.insert("port", String::from("6881"));
-        return Params { params };
-    }
-
-    pub fn query(&self) -> String {
-        let param_strings: Vec<String> = self.params
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect();
-        param_strings.join("&")
-    }
-}
-#[derive(Debug)]
 pub enum Error {
     ReqwestError(reqwest::Error),
     ReqwestStatus(reqwest::StatusCode),
     DecoderError(serde_bencode::Error),
-    IoError(io::Error)
+    IoError(io::Error),
 }
 
 impl convert::From<serde_bencode::Error> for Error {
@@ -118,8 +102,11 @@ pub fn generate_peer_id() -> String {
     format!("{}{}", PEER_ID_PREFIX, rand_chars)
 }
 
-fn get_peers(url: &str) -> Result<Response, Error> {
-    let mut response = reqwest::get(url)?;
+fn get_peers_from_anounce(metainfo: &Metainfo, id: &String) -> Result<Response, Error> {
+    let announce = metainfo.announce.clone().unwrap_or_default();
+    let param = Params::from(metainfo, id);
+    let url = format!("{}?{}", &announce, &param);
+    let mut response = reqwest::get(&url)?;
     let mut body = Vec::new();
     response.copy_to(&mut body)?;
     if reqwest::StatusCode::Ok == response.status() {

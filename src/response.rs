@@ -1,10 +1,11 @@
 use std::fmt;
 use serde_bencode::{de, Error};
-use std::ffi::CString;
+use serde_bytes::ByteBuf;
+use std::ops::Deref;
 
 const BYTES_PER_PEER: usize = 6;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Peer {
     host: String,
     port: u32,
@@ -55,8 +56,7 @@ impl Response {
     fn peers(response: &ResponseCompact) -> Result<Vec<Peer>, Error> {
         let mut peers = Vec::new();
         if let Some(ref records) = response.peers {
-            let bytes = records.clone().into_bytes();
-            let mut it = bytes.chunks(BYTES_PER_PEER);
+            let mut it = records.deref().chunks(BYTES_PER_PEER);
             while let Some(chunk) = it.next() {
                 let peer = Peer::from(chunk);
                 peers.push(peer?);
@@ -82,10 +82,8 @@ impl fmt::Display for Response {
 struct ResponseCompact {
     #[serde(rename = "failure reason")]
     pub failure_reason: Option<String>,
-    #[serde(rename = "warning message")]
-    pub warning_message: Option<String>,
     pub interval: Option<i64>,
     pub complete: Option<i64>,
     pub incomplete: Option<i64>,
-    pub peers: Option<CString>,
+    pub peers: Option<ByteBuf>,
 }

@@ -26,4 +26,5 @@ fn main() {
         Err(e) => println!("ERROR: {:?}", e),
     }
     daemon.update();
+    println!("{}", daemon);
 }
