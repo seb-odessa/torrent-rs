@@ -25,6 +25,10 @@ impl Metainfo {
     pub fn from(buffer: &[u8]) -> Result<Self, Error> {
         de::from_bytes::<Metainfo>(&buffer)
     }
+
+    pub fn get_piece_length(index: usize) -> Option<i64> {
+        None
+    }
 }
 impl fmt::Display for Metainfo {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
