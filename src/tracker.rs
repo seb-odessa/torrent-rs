@@ -60,7 +60,7 @@ impl fmt::Display for TrackerDaemon {
         }
         for (sha1, peers) in &self.peers {
             for peer in peers {
-                writeln!(fmt, "SHA1: {:?} => {}", sha1.to_hex(), peer)?;
+                writeln!(fmt, "SHA1: {} => {}", sha1.to_hex(), peer)?;
             }
         }
         write!(fmt, "")

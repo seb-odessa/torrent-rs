@@ -4,29 +4,42 @@ use info::Info;
 use time::{at, Timespec};
 
 #[derive(Debug, Deserialize)]
-pub struct Node(String, i64);
-
-#[derive(Debug, Deserialize)]
 pub struct Metainfo {
     pub info: Info,
     pub announce: Option<String>,
-    pub nodes: Option<Vec<Node>>,
+    pub nodes: Option<Vec<(String, i64)>>,
     pub encoding: Option<String>,
     pub httpseeds: Option<Vec<String>>,
-    #[serde(rename = "announce-list")]
-    pub announce_list: Option<Vec<Vec<String>>>,
-    #[serde(rename = "creation date")]
-    pub creation_date: Option<i64>,
+    #[serde(rename = "announce-list")] pub announce_list: Option<Vec<Vec<String>>>,
+    #[serde(rename = "creation date")] pub creation_date: Option<i64>,
     pub comment: Option<String>,
-    #[serde(rename = "created by")]
-    pub created_by: Option<String>,
+    #[serde(rename = "created by")] pub created_by: Option<String>,
 }
 impl Metainfo {
     pub fn from(buffer: &[u8]) -> Result<Self, Error> {
         de::from_bytes::<Metainfo>(&buffer)
     }
 
-    pub fn get_piece_length(index: usize) -> Option<i64> {
+    fn get_length(&self) -> i64 {
+        let mut length = 0;
+        if let Some(ref files) = self.info.files {
+            for file in files {
+                length += file.length;
+            }
+        } else if let Some(len) = self.info.length {
+            length += len;
+        }
+        return length;
+    }
+
+    pub fn get_piece_length(&self, index: i64) -> Option<i64> {
+        let length = self.get_length();
+        let max_index = length / self.info.piece_length;
+        let last_full_piece = max_index * self.info.piece_length;
+        if index <= last_full_piece {
+
+        }
+
         None
     }
 }
