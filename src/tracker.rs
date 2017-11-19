@@ -13,7 +13,7 @@ use serde_bencode;
 use rustc_serialize::hex::ToHex;
 
 use hash::Sha1;
-use response::{Response, Peer};
+use response::{Peer, Response};
 use metainfo::Metainfo;
 use params::Params;
 
@@ -40,15 +40,19 @@ impl TrackerDaemon {
     pub fn update(&mut self) {
         for (key, metainfo) in &self.torrents {
             println!("{}", metainfo);
-            if let Some(response) = get_peers_from_anounce(&metainfo, &self.peer_id).ok() {
-                println!("Tracker Response received:\n{}", response);
-                for peer in &response.peers {
-                    println!("Inserting peer {} to the Set.", &peer);
-                    self.peers.entry(key.clone()).or_insert(HashSet::new());
-                    if let Entry::Occupied(mut peers) = self.peers.entry(key.clone()) {
-                        peers.get_mut().insert(peer.clone());
+            let id = self.peer_id.clone();
+            match get_peers_from_anounce(&metainfo, &id) {
+                Ok(response) => {
+                    println!("Tracker Response received:\n{}", response);
+                    for peer in &response.peers {
+                        println!("Inserting peer {} to the Set.", &peer);
+                        self.peers.entry(key.clone()).or_insert(HashSet::new());
+                        if let Entry::Occupied(mut peers) = self.peers.entry(key.clone()) {
+                            peers.get_mut().insert(peer.clone());
+                        }
                     }
                 }
+                Err(e) => println!("{:?}", e),
             }
         }
     }
@@ -70,9 +74,8 @@ impl fmt::Display for TrackerDaemon {
 #[derive(Debug)]
 pub enum Error {
     ReqwestError(reqwest::Error),
-    ReqwestStatus(reqwest::StatusCode),
     DecoderError(serde_bencode::Error),
-    IoError(io::Error),
+    IoError(io::Error)
 }
 
 impl convert::From<serde_bencode::Error> for Error {
@@ -105,13 +108,7 @@ pub fn generate_peer_id() -> String {
 fn get_peers_from_anounce(metainfo: &Metainfo, id: &String) -> Result<Response, Error> {
     let announce = metainfo.announce.clone().unwrap_or_default();
     let param = Params::from(metainfo, id);
-    let url = format!("{}?{}", &announce, &param);
-    let mut response = reqwest::get(&url)?;
     let mut body = Vec::new();
-    response.copy_to(&mut body)?;
-    if reqwest::StatusCode::Ok == response.status() {
-        Ok(Response::from(&body)?)
-    } else {
-        Err(Error::ReqwestStatus(response.status()))
-    }
+    reqwest::get(&format!("{}?{}", &announce, &param))?.copy_to(&mut body)?;
+    Response::from(&body).map_err(|e| Error::from(e))
 }
