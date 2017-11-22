@@ -1,6 +1,6 @@
 use std::fmt;
 use std::collections::HashMap;
-use url::percent_encoding::{percent_encode, DEFAULT_ENCODE_SET};
+
 use metainfo::Metainfo;
 
 #[derive(Debug)]
@@ -8,12 +8,20 @@ pub struct Params {
     params: HashMap<&'static str, String>,
 }
 impl Params {
+    fn escape(buffer: &Vec<u8>) -> String {
+        let mut result = String::with_capacity(3 * buffer.len());
+        for byte in buffer {
+            result += "%";
+            result += &format!("{:02X}", byte);
+        }
+        result
+    }
+
     pub fn from(metainfo: &Metainfo, id: &String) -> Self {
         let length = metainfo.info.length.unwrap_or_default().to_string();
-        let info_hash = percent_encode(&metainfo.info.sha1(), DEFAULT_ENCODE_SET).to_string();
         let mut params = HashMap::new();
         params.insert("left", length);
-        params.insert("info_hash", info_hash);
+        params.insert("info_hash", Self::escape(&metainfo.info_hash()));
         params.insert("downloaded", String::from("0"));
         params.insert("uploaded", String::from("0"));
         params.insert("event", String::from("started"));

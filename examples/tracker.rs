@@ -1,8 +1,4 @@
 extern crate torrent;
-extern crate reqwest;
-extern crate serde_bencode;
-extern crate url;
-
 extern crate log;
 extern crate env_logger;
 

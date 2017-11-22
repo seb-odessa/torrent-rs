@@ -1,7 +1,14 @@
 use std::fmt;
+
+use serde_bytes::ByteBuf;
 use serde_bencode::{de, Error};
+use rustc_serialize::hex::ToHex;
+
+use hash;
+use decoder;
 use info::Info;
 use time::{at, Timespec};
+
 
 #[derive(Debug, Deserialize)]
 pub struct Metainfo {
@@ -14,10 +21,30 @@ pub struct Metainfo {
     #[serde(rename = "creation date")] pub creation_date: Option<i64>,
     pub comment: Option<String>,
     #[serde(rename = "created by")] pub created_by: Option<String>,
+    pub info_hash: Option<ByteBuf>,
 }
 impl Metainfo {
     pub fn from(buffer: &[u8]) -> Result<Self, Error> {
-        de::from_bytes::<Metainfo>(&buffer)
+        let metainfo = de::from_bytes::<Metainfo>(&buffer);
+        if let Some(info) = decoder::get_info_bytes(buffer) {
+            if metainfo.is_ok()
+            {
+                let mut meta = metainfo.unwrap();
+                let sha1 = hash::sha1(&ByteBuf::from(info));
+                meta.info_hash = Some(ByteBuf::from(sha1));
+                return Ok(meta);
+            }
+            else
+            {
+                return metainfo;
+            }
+        }
+        return Err(Error::Custom(String::from("Can't read INFO")));
+
+    }
+
+    pub fn info_hash(&self) -> Vec<u8> {
+        self.info_hash.clone().unwrap_or_default().into()
     }
 
     fn get_length(&self) -> i64 {
@@ -36,9 +63,7 @@ impl Metainfo {
         let length = self.get_length();
         let max_index = length / self.info.piece_length;
         let last_full_piece = max_index * self.info.piece_length;
-        if index <= last_full_piece {
-
-        }
+        if index <= last_full_piece {}
 
         None
     }
@@ -86,6 +111,8 @@ impl fmt::Display for Metainfo {
                 writeln!(fmt, "file length:\t{}", f.length)?;
             }
         }
+        let info_hash: hash::Sha1 = self.info_hash.clone().unwrap_or_default().into();
+        writeln!(fmt, "hash info:\t{}", info_hash.to_hex().to_uppercase())?;
         write!(fmt, "")
     }
 }

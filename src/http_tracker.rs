@@ -3,7 +3,6 @@ use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 
 use reqwest;
-//use serde_bencode::Error;
 
 use hash::Sha1;
 use params::Params;

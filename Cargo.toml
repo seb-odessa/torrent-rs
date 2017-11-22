@@ -1,10 +1,9 @@
 [package]
 name = "torrent"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["seb-odessa <seb@ukr.net>"]
 
 [dependencies]
-    url = "*"
     log = "*"
     env_logger = "*"
     rand = "*"
@@ -15,4 +14,5 @@ authors = ["seb-odessa <seb@ukr.net>"]
     serde_bytes = "*"
     serde_derive = "*"
     serde_bencode = { git = "https://github.com/seb-odessa/serde-bencode.git" }
+    bencode = "*"
     rustc-serialize = "*"
