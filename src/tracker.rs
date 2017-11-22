@@ -45,7 +45,6 @@ impl TrackerDaemon {
                 Ok(response) => {
                     println!("Tracker Response received:\n{}", response);
                     for peer in &response.peers {
-                        println!("Inserting peer {} to the Set.", &peer);
                         self.peers.entry(key.clone()).or_insert(HashSet::new());
                         if let Entry::Occupied(mut peers) = self.peers.entry(key.clone()) {
                             peers.get_mut().insert(peer.clone());
@@ -75,7 +74,7 @@ impl fmt::Display for TrackerDaemon {
 pub enum Error {
     ReqwestError(reqwest::Error),
     DecoderError(serde_bencode::Error),
-    IoError(io::Error)
+    IoError(io::Error),
 }
 
 impl convert::From<serde_bencode::Error> for Error {
@@ -109,6 +108,7 @@ fn get_peers_from_anounce(metainfo: &Metainfo, id: &String) -> Result<Response, 
     let announce = metainfo.announce.clone().unwrap_or_default();
     let param = Params::from(metainfo, id);
     let mut body = Vec::new();
-    reqwest::get(&format!("{}?{}", &announce, &param))?.copy_to(&mut body)?;
+    reqwest::get(&format!("{}?{}", &announce, &param))?
+        .copy_to(&mut body)?;
     Response::from(&body).map_err(|e| Error::from(e))
 }
