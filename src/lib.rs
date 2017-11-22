@@ -10,12 +10,17 @@ extern crate serde_bytes;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+
 mod hash;
 mod info;
 mod params;
 mod metainfo;
 mod response;
 mod tracker;
+mod http_tracker;
 
 pub use hash::Sha1;
 pub use info::File;

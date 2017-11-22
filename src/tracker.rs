@@ -5,53 +5,63 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::collections::HashSet;
 
-use reqwest;
 use rand;
 use rand::Rng;
 use serde_bencode;
-
+use reqwest;
 use rustc_serialize::hex::ToHex;
 
 use hash::Sha1;
-use response::{Peer, Response};
+use response::Peer;
 use metainfo::Metainfo;
 use params::Params;
+use http_tracker::HttpTracker;
+
+pub type TorrentMap = HashMap<Sha1, Metainfo>;
+pub type TrackerMap = HashMap<Sha1, HashSet<HttpTracker>>;
+pub type PeerMap = HashMap<Sha1, HashSet<Peer>>;
+
 
 #[derive(Debug)]
 pub struct TrackerDaemon {
-    torrents: HashMap<Sha1, Metainfo>,
-    peers: HashMap<Sha1, HashSet<Peer>>,
     peer_id: String,
+    torrents: TorrentMap,
+    trackers: TrackerMap,
+    peers: PeerMap,
 }
 impl TrackerDaemon {
     pub fn new() -> Self {
         TrackerDaemon {
-            torrents: HashMap::new(),
-            peers: HashMap::new(),
             peer_id: generate_peer_id(),
+            torrents: TorrentMap::new(),
+            trackers: TrackerMap::new(),
+            peers: PeerMap::new(),
         }
     }
 
     pub fn register(&mut self, metainfo: Metainfo) {
         let hash = metainfo.info.sha1();
-        self.torrents.insert(hash, metainfo);
+        let url = metainfo.announce.clone().unwrap_or_default();
+        let params = Params::from(&metainfo, &self.peer_id);
+
+        self.torrents.insert(hash.clone(), metainfo);
+
+        let tracker = HttpTracker::new(url, params);
+        self.trackers.entry(hash.clone()).or_insert(HashSet::new());
+        if let Entry::Occupied(mut trackers) = self.trackers.entry(hash.clone()) {
+            trackers.get_mut().insert(tracker);
+        }
+
+
     }
 
     pub fn update(&mut self) {
-        for (key, metainfo) in &self.torrents {
-            println!("{}", metainfo);
-            let id = self.peer_id.clone();
-            match get_peers_from_anounce(&metainfo, &id) {
-                Ok(response) => {
-                    println!("Tracker Response received:\n{}", response);
-                    for peer in &response.peers {
-                        self.peers.entry(key.clone()).or_insert(HashSet::new());
-                        if let Entry::Occupied(mut peers) = self.peers.entry(key.clone()) {
-                            peers.get_mut().insert(peer.clone());
-                        }
-                    }
+        for (hash, metainfo) in &self.torrents {
+            info!("TrackerDaemon::update():\n{}", metainfo);
+            if let Entry::Occupied(trackers) = self.trackers.entry(hash.clone()) {
+                for tracker in trackers.get() {
+                    tracker.update_peers(&hash, &mut self.peers);
                 }
-                Err(e) => println!("{:?}", e),
             }
         }
     }
@@ -102,13 +112,4 @@ pub fn generate_peer_id() -> String {
         .take(20 - PEER_ID_PREFIX.len())
         .collect();
     format!("{}{}", PEER_ID_PREFIX, rand_chars)
-}
-
-fn get_peers_from_anounce(metainfo: &Metainfo, id: &String) -> Result<Response, Error> {
-    let announce = metainfo.announce.clone().unwrap_or_default();
-    let param = Params::from(metainfo, id);
-    let mut body = Vec::new();
-    reqwest::get(&format!("{}?{}", &announce, &param))?
-        .copy_to(&mut body)?;
-    Response::from(&body).map_err(|e| Error::from(e))
 }
