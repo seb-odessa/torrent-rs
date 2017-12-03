@@ -13,7 +13,7 @@ extern crate serde_derive;
 extern crate log;
 
 
-mod hash;
+pub mod hash;
 mod info;
 mod params;
 mod metainfo;
@@ -22,7 +22,6 @@ mod tracker;
 mod decoder;
 mod http_tracker;
 
-pub use hash::Sha1;
 pub use info::File;
 pub use info::Info;
 

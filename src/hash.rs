@@ -2,6 +2,7 @@ use crypto;
 use crypto::digest::Digest;
 
 pub type Sha1 = Vec<u8>;
+pub const SHA1_LEN: usize = 20;
 
 pub fn sha1(input: &[u8]) -> Sha1 {
     let mut hasher = crypto::sha1::Sha1::new();

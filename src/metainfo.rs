@@ -104,6 +104,7 @@ impl fmt::Display for Metainfo {
             self.encoding.clone().unwrap_or_default()
         )?;
         writeln!(fmt, "piece length:\t{:?}", self.info.piece_length)?;
+        writeln!(fmt, "pieces count:\t{:?}", self.info.pieces.len() / 20)?;
         writeln!(fmt, "length:\t\t{:?}", self.info.length.unwrap_or_default())?;
         if let &Some(ref files) = &self.info.files {
             for f in files {
