@@ -17,25 +17,25 @@ pub struct Metainfo {
     pub nodes: Option<Vec<(String, i64)>>,
     pub encoding: Option<String>,
     pub httpseeds: Option<Vec<String>>,
-    #[serde(rename = "announce-list")] pub announce_list: Option<Vec<Vec<String>>>,
-    #[serde(rename = "creation date")] pub creation_date: Option<i64>,
+    #[serde(rename = "announce-list")]
+    pub announce_list: Option<Vec<Vec<String>>>,
+    #[serde(rename = "creation date")]
+    pub creation_date: Option<i64>,
     pub comment: Option<String>,
-    #[serde(rename = "created by")] pub created_by: Option<String>,
+    #[serde(rename = "created by")]
+    pub created_by: Option<String>,
     pub info_hash: Option<ByteBuf>,
 }
 impl Metainfo {
     pub fn from(buffer: &[u8]) -> Result<Self, Error> {
         let metainfo = de::from_bytes::<Metainfo>(&buffer);
         if let Some(info) = decoder::get_info_bytes(buffer) {
-            if metainfo.is_ok()
-            {
+            if metainfo.is_ok() {
                 let mut meta = metainfo.unwrap();
                 let sha1 = hash::sha1(&ByteBuf::from(info));
                 meta.info_hash = Some(ByteBuf::from(sha1));
                 return Ok(meta);
-            }
-            else
-            {
+            } else {
                 return metainfo;
             }
         }

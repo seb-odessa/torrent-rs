@@ -69,7 +69,12 @@ impl TrackerDaemon {
 impl fmt::Display for TrackerDaemon {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         for (sha1, metainfo) in &self.torrents {
-            writeln!(fmt, "SHA1: {} => {}", sha1.to_hex().to_uppercase(), metainfo.info.name)?;
+            writeln!(
+                fmt,
+                "SHA1: {} => {}",
+                sha1.to_hex().to_uppercase(),
+                metainfo.info.name
+            )?;
         }
         for (sha1, peers) in &self.peers {
             for peer in peers {

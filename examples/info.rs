@@ -23,23 +23,25 @@ fn get_content() -> Result<Vec<u8>, io::Error> {
     Ok(buffer)
 }
 
-fn main() {
-
-    match get_content() {
-        Ok(buffer) => {
-            match Metainfo::from(&buffer) {
-                Ok(metainfo) => {
-                    println!("{}", &metainfo);
-                    let pieces: &[u8] = metainfo.info.pieces.as_ref();
-                    let mut index = 0;
-                    for sha1 in pieces.chunks(SHA1_LEN) {
-                        println!("{:>6} {}", index, sha1.to_hex().to_uppercase());
-                        index += 1;
-                    }
-                }
-                Err(e) => println!("ERROR: {:?}", e),
+fn print_info(buffer: Vec<u8>) -> Result<(), io::Error> {
+    match Metainfo::from(&buffer) {
+        Ok(metainfo) => {
+            println!("{}", &metainfo);
+            let pieces: &[u8] = metainfo.info.pieces.as_ref();
+            let mut index = 0;
+            for sha1 in pieces.chunks(SHA1_LEN) {
+                println!("{:>6} {}", index, sha1.to_hex().to_uppercase());
+                index += 1;
             }
         }
+        Err(e) => println!("ERROR: {:?}", e),
+    }
+    Ok(())
+}
+
+fn main() {
+    match get_content() {
+        Ok(buffer) => print_info(buffer).unwrap(),
         Err(e) => println!("ERROR: {:?}", e),
     }
 }
