@@ -10,7 +10,6 @@ use rustc_serialize::hex::ToHex;
 use hash::Sha1;
 use response::Peer;
 use metainfo::Metainfo;
-use params::Params;
 use tracker::Tracker;
 
 pub type TorrentMap = HashMap<Sha1, Metainfo>;
@@ -37,18 +36,12 @@ impl Daemon {
 
     pub fn register(&mut self, metainfo: Metainfo) {
         let hash: Sha1 = metainfo.info_hash();
-        let url = metainfo.announce.clone().unwrap_or_default();
-        let params = Params::from(&metainfo, &self.peer_id);
-
-        self.torrents.insert(hash.clone(), metainfo);
-
-        let tracker = Tracker::new(url, params);
+        let tracker = Tracker::new(&self.peer_id, &metainfo);
         self.trackers.entry(hash.clone()).or_insert(HashSet::new());
         if let Entry::Occupied(mut trackers) = self.trackers.entry(hash.clone()) {
             trackers.get_mut().insert(tracker);
         }
-
-
+        self.torrents.insert(hash.clone(), metainfo);
     }
 
     pub fn update(&mut self) {
