@@ -3,7 +3,7 @@ extern crate log;
 extern crate env_logger;
 
 use torrent::Metainfo;
-use torrent::TrackerDaemon;
+use torrent::Daemon;
 
 use std::io::Read;
 use std::fs::File;
@@ -19,7 +19,7 @@ fn main() {
 }
 
 fn handle(buffer: &Vec<u8>) -> Result<(), io::Error> {
-    let mut daemon = TrackerDaemon::new();
+    let mut daemon = Daemon::new();
     let metainfo = Metainfo::from(&buffer).map_err(|_| {
         io::Error::new(io::ErrorKind::Other, "Cant create metainfo")
     })?;
