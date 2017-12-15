@@ -6,6 +6,7 @@ extern crate time;
 extern crate rustc_serialize;
 extern crate serde_bytes;
 extern crate env_logger;
+extern crate byteorder;
 
 #[macro_use]
 extern crate serde_derive;

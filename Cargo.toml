@@ -15,4 +15,5 @@ authors = ["seb-odessa <seb@ukr.net>"]
     serde_derive = "*"
     serde_bencode = { git = "https://github.com/seb-odessa/serde-bencode.git" }
     bencode = "*"
+    byteorder = "*"
     rustc-serialize = "*"

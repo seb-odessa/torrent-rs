@@ -2,6 +2,7 @@ use std::fmt;
 use serde_bencode::{de, Error};
 use serde_bytes::ByteBuf;
 use std::ops::Deref;
+use byteorder::{ByteOrder, BigEndian};
 
 const BYTES_PER_PEER: usize = 6;
 
@@ -17,8 +18,15 @@ impl Peer {
                 String::from("Chunk length is not equal to BYTES_PER_PEER"),
             ))
         } else {
-            println!("{:X}", chunk[4]);
-            println!("{:X}", chunk[5]);
+            let le = BigEndian::read_u16(&chunk[4..5]);
+            let be = BigEndian::read_u16(&chunk[4..5]);
+            println!(
+                "{:X} {:X}, le = {:X}, be = {:X}",
+                chunk[4],
+                chunk[5],
+                le,
+                be
+            );
             Ok(Peer {
                 host: format!("{}.{}.{}.{}", chunk[0], chunk[1], chunk[2], chunk[3]),
                 port: 0xFF * chunk[4] as u32 + chunk[5] as u32,
