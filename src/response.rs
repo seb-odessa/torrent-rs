@@ -17,6 +17,8 @@ impl Peer {
                 String::from("Chunk length is not equal to BYTES_PER_PEER"),
             ))
         } else {
+            println!("{:X}", chunk[4]);
+            println!("{:X}", chunk[5]);
             Ok(Peer {
                 host: format!("{}.{}.{}.{}", chunk[0], chunk[1], chunk[2], chunk[3]),
                 port: 0xFF * chunk[4] as u32 + chunk[5] as u32,
