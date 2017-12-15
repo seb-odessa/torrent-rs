@@ -18,8 +18,8 @@ impl Peer {
                 String::from("Chunk length is not equal to BYTES_PER_PEER"),
             ))
         } else {
-            let le = BigEndian::read_u16(&chunk[4..5]);
-            let be = BigEndian::read_u16(&chunk[4..5]);
+            let le = BigEndian::read_u16(&chunk[4..6]);
+            let be = BigEndian::read_u16(&chunk[4..6]);
             println!(
                 "{:X} {:X}, le = {:X}, be = {:X}",
                 chunk[4],
