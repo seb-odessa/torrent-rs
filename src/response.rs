@@ -9,7 +9,7 @@ const BYTES_PER_PEER: usize = 6;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Peer {
     host: String,
-    port: u32,
+    port: u16,
 }
 impl Peer {
     pub fn from(chunk: &[u8]) -> Result<Self, Error> {
@@ -18,18 +18,9 @@ impl Peer {
                 String::from("Chunk length is not equal to BYTES_PER_PEER"),
             ))
         } else {
-            let le = BigEndian::read_u16(&chunk[4..6]);
-            let be = BigEndian::read_u16(&chunk[4..6]);
-            println!(
-                "{:X} {:X}, le = {:X}, be = {:X}",
-                chunk[4],
-                chunk[5],
-                le,
-                be
-            );
             Ok(Peer {
                 host: format!("{}.{}.{}.{}", chunk[0], chunk[1], chunk[2], chunk[3]),
-                port: 0xFF * chunk[4] as u32 + chunk[5] as u32,
+                port: BigEndian::read_u16(&chunk[4..BYTES_PER_PEER]),
             })
         }
     }
