@@ -27,7 +27,7 @@ impl Params {
         params.insert("event", String::from("started"));
         params.insert("peer_id", id.clone());
         params.insert("compact", String::from("1"));
-        //        params.insert("port", String::from("6881"));
+        params.insert("port", String::from("6886"));
         return Params { params };
     }
 
