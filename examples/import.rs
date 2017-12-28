@@ -23,8 +23,11 @@ fn get_content() -> Result<Vec<u8>, io::Error> {
     };
     Ok(buffer)
 }
-fn import(metainfo: &Metainfo) {
 
+fn import(metainfo: &Metainfo) {
+    println!("metainfo.get_length(): {}", &metainfo.get_length());
+    println!("metainfo.get_piece_count(): {}", &metainfo.get_piece_count());
+    println!("metainfo.get_piece_length(): {}", &metainfo.get_piece_length());
 }
 
 fn print_info(buffer: Vec<u8>) -> Result<(), io::Error> {

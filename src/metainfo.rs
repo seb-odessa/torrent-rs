@@ -47,7 +47,7 @@ impl Metainfo {
         self.info_hash.clone().unwrap_or_default().into()
     }
 
-    fn get_length(&self) -> i64 {
+    pub fn get_length(&self) -> u64 {
         let mut length = 0;
         if let Some(ref files) = self.info.files {
             for file in files {
@@ -56,16 +56,24 @@ impl Metainfo {
         } else if let Some(len) = self.info.length {
             length += len;
         }
-        return length;
+        return length as u64;
     }
 
-    pub fn get_piece_length(&self, index: i64) -> Option<i64> {
-        let length = self.get_length();
-        let max_index = length / self.info.piece_length;
-        let last_full_piece = max_index * self.info.piece_length;
-        if index <= last_full_piece {}
+    pub fn get_piece_length(&self) -> u64 {
+        self.info.piece_length as u64
+    }
 
-        None
+    pub fn get_piece_count(&self) -> u64 {
+        let count = self.get_length() / self.get_piece_length();
+        if 0 != self.get_length() - count * self.get_piece_length() {
+            count + 1
+        } else {
+            count
+        }
+    }
+    pub fn get_info_hash(&self) -> String {
+        let info_hash: hash::Sha1 = self.info_hash.clone().unwrap_or_default().into();
+        info_hash.to_hex().to_uppercase()
     }
 }
 impl fmt::Display for Metainfo {
@@ -103,17 +111,16 @@ impl fmt::Display for Metainfo {
             "encoding:\t{}",
             self.encoding.clone().unwrap_or_default()
         )?;
-        writeln!(fmt, "piece length:\t{:?}", self.info.piece_length)?;
-        writeln!(fmt, "pieces count:\t{:?}", self.info.pieces.len() / 20)?;
-        writeln!(fmt, "length:\t\t{:?}", self.info.length.unwrap_or_default())?;
+        writeln!(fmt, "piece length:\t{:?}", self.get_piece_length())?;
+        writeln!(fmt, "pieces count:\t{:?}", self.get_piece_count())?;
+        writeln!(fmt, "length:\t\t{:?}", self.get_length())?;
         if let &Some(ref files) = &self.info.files {
             for f in files {
                 writeln!(fmt, "file path:\t{:?}", f.path)?;
                 writeln!(fmt, "file length:\t{}", f.length)?;
             }
         }
-        let info_hash: hash::Sha1 = self.info_hash.clone().unwrap_or_default().into();
-        writeln!(fmt, "hash info:\t{}", info_hash.to_hex().to_uppercase())?;
+        writeln!(fmt, "hash info:\t{}", self.get_info_hash())?;
         write!(fmt, "")
     }
 }
