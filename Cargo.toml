@@ -17,3 +17,4 @@ authors = ["seb-odessa <seb@ukr.net>"]
     bencode = "*"
     byteorder = "*"
     rustc-serialize = "*"
+    rusqlite = "*"
