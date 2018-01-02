@@ -40,11 +40,19 @@ impl Metainfo {
             }
         }
         return Err(Error::Custom(String::from("Can't read INFO")));
+    }
 
+    pub fn get_file_name(&self) -> String {
+        self.info.name.clone()
     }
 
     pub fn info_hash(&self) -> Vec<u8> {
         self.info_hash.clone().unwrap_or_default().into()
+    }
+
+    pub fn get_creation_date(&self) -> String {
+        let time = self.creation_date.unwrap_or_default();
+        format!("{}", at(Timespec::new(time, 0)).asctime())
     }
 
     pub fn get_length(&self) -> u64 {
