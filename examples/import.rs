@@ -1,10 +1,11 @@
-extern crate torrent;
-extern crate rustc_serialize;
 extern crate rusqlite;
+extern crate rustc_serialize;
 extern crate time;
+extern crate torrent;
 
 use rusqlite::Connection;
 use torrent::Metainfo;
+use rustc_serialize::hex::ToHex;
 
 use std::error::Error;
 use std::io::Read;
@@ -13,10 +14,12 @@ use std::io;
 use std::env;
 
 const DATABASE_FILE: &'static str = "lib.rus.ec.db";
-const INSERT_ARCHIVE: &'static str =
-"INSERT INTO
-    archives (name, created, hash_info, total_length, piece_length, pieces_count)
-    VALUES (?, ?, ?, ?, ?, ?)";
+const INSERT_ARCHIVE: &'static str = "INSERT INTO
+    archives (name, created, hash, total_length, piece_length, pieces_count) VALUES (?, ?, ?, ?, ?, ?)";
+
+const INSERT_PIECE: &'static str = "INSERT INTO
+    PIECES (archive_id, offset, hash) VALUES (?, ?, ?)";
+
 
 fn load() -> Result<Vec<u8>, io::Error> {
     let args = env::args().collect::<Vec<_>>();
@@ -47,8 +50,22 @@ fn upload(metainfo: Metainfo) -> Result<(), rusqlite::Error> {
         &metainfo.get_info_hash(),
         &(metainfo.get_length() as i64),
         &(metainfo.get_piece_length() as i64),
-        &(metainfo.get_piece_count() as i64)
+        &(metainfo.get_piece_count() as i64),
+    ])?;
+
+    let mut stmt = conn.prepare(INSERT_PIECE)?;
+    let pieces: &[u8] = metainfo.info.pieces.as_ref();
+    let archive_id = conn.last_insert_rowid();
+    let mut offset = 0;
+    for sha1 in pieces.chunks(20) {
+        stmt.execute(&[
+            &archive_id,
+            &offset,
+            &sha1.to_hex().to_uppercase()
         ])?;
+        offset += 1;
+    }
+
     Ok(())
 }
 
