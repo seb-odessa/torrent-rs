@@ -14,12 +14,13 @@ use std::io;
 use std::env;
 
 const DATABASE_FILE: &'static str = "lib.rus.ec.db";
-const INSERT_ARCHIVE: &'static str = "INSERT INTO
-    archives (name, created, hash, total_length, piece_length, pieces_count) VALUES (?, ?, ?, ?, ?, ?)";
 
-const INSERT_PIECE: &'static str = "INSERT INTO
-    PIECES (archive_id, offset, hash) VALUES (?, ?, ?)";
+const INSERT_ARCHIVE: &'static str =
+"INSERT INTO archives (name, created, hash, total_length, piece_length, pieces_count)
+VALUES (?, ?, ?, ?, ?, ?)";
 
+const INSERT_PIECE: &'static str =
+"INSERT INTO pieces (archive_id, offset, hash) VALUES (?, ?, ?)";
 
 fn load() -> Result<Vec<u8>, io::Error> {
     let args = env::args().collect::<Vec<_>>();
@@ -34,6 +35,33 @@ fn load() -> Result<Vec<u8>, io::Error> {
     Ok(buffer)
 }
 
+fn insert_metainfo(metainfo: &Metainfo, conn: &Connection) -> Result<i64, rusqlite::Error> {
+        conn.execute(INSERT_ARCHIVE, &[
+        &metainfo.get_file_name(),
+        &metainfo.get_creation_date(),
+        &metainfo.get_info_hash(),
+        &(metainfo.get_length() as i64),
+        &(metainfo.get_piece_length() as i64),
+        &(metainfo.get_piece_count() as i64),
+    ])?;
+    Ok(conn.last_insert_rowid())
+}
+
+fn insert_pieces(metainfo: &Metainfo, archive_id: i64, conn: &mut Connection) -> Result<(), rusqlite::Error> {
+    let tx = conn.transaction()?;
+    {
+       let mut stmt = tx.prepare(INSERT_PIECE)?;
+        let pieces: &[u8] = metainfo.info.pieces.as_ref();
+        let mut offset = 0;
+        for sha1 in pieces.chunks(20) {
+            stmt.execute(&[&archive_id, &offset, &sha1.to_hex().to_uppercase()])?;
+            offset += 1;
+        }
+    }
+    tx.commit()?;
+    Ok(())
+}
+
 fn upload(metainfo: Metainfo) -> Result<(), rusqlite::Error> {
     println!("file name:     {}", &metainfo.get_file_name());
     println!("creation date: {}", &metainfo.get_creation_date());
@@ -42,31 +70,9 @@ fn upload(metainfo: Metainfo) -> Result<(), rusqlite::Error> {
     println!("piece length:  {}", &metainfo.get_piece_length());
     println!("piece count:   {}", &metainfo.get_piece_count());
 
-    let conn = Connection::open(DATABASE_FILE)?;
-    let mut stmt = conn.prepare(INSERT_ARCHIVE)?;
-    stmt.execute(&[
-        &metainfo.get_file_name(),
-        &metainfo.get_creation_date(),
-        &metainfo.get_info_hash(),
-        &(metainfo.get_length() as i64),
-        &(metainfo.get_piece_length() as i64),
-        &(metainfo.get_piece_count() as i64),
-    ])?;
-
-    let mut stmt = conn.prepare(INSERT_PIECE)?;
-    let pieces: &[u8] = metainfo.info.pieces.as_ref();
-    let archive_id = conn.last_insert_rowid();
-    let mut offset = 0;
-    for sha1 in pieces.chunks(20) {
-        stmt.execute(&[
-            &archive_id,
-            &offset,
-            &sha1.to_hex().to_uppercase()
-        ])?;
-        offset += 1;
-    }
-
-    Ok(())
+    let mut conn = Connection::open(DATABASE_FILE)?;
+    let archive_id = insert_metainfo(&metainfo, &conn)?;
+    insert_pieces(&metainfo, archive_id, &mut conn)
 }
 
 fn insert(data: Metainfo) -> Result<(), io::Error> {
