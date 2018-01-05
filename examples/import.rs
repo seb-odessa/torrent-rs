@@ -15,12 +15,10 @@ use std::env;
 
 const DATABASE_FILE: &'static str = "lib.rus.ec.db";
 
-const INSERT_ARCHIVE: &'static str =
-"INSERT INTO archives (name, created, hash, total_length, piece_length, pieces_count)
+const INSERT_ARCHIVE: &'static str = "INSERT INTO archives (name, created, hash, total_length, piece_length, pieces_count)
 VALUES (?, ?, ?, ?, ?, ?)";
 
-const INSERT_PIECE: &'static str =
-"INSERT INTO pieces (archive_id, offset, hash) VALUES (?, ?, ?)";
+const INSERT_PIECE: &'static str = "INSERT INTO pieces (archive_id, piece_idx, hash) VALUES (?, ?, ?)";
 
 fn load() -> Result<Vec<u8>, io::Error> {
     let args = env::args().collect::<Vec<_>>();
@@ -36,26 +34,33 @@ fn load() -> Result<Vec<u8>, io::Error> {
 }
 
 fn insert_metainfo(metainfo: &Metainfo, conn: &Connection) -> Result<i64, rusqlite::Error> {
-        conn.execute(INSERT_ARCHIVE, &[
-        &metainfo.get_file_name(),
-        &metainfo.get_creation_date(),
-        &metainfo.get_info_hash(),
-        &(metainfo.get_length() as i64),
-        &(metainfo.get_piece_length() as i64),
-        &(metainfo.get_piece_count() as i64),
-    ])?;
+    conn.execute(
+        INSERT_ARCHIVE,
+        &[
+            &metainfo.get_file_name(),
+            &metainfo.get_creation_date(),
+            &metainfo.get_info_hash(),
+            &(metainfo.get_length() as i64),
+            &(metainfo.get_piece_length() as i64),
+            &(metainfo.get_piece_count() as i64),
+        ],
+    )?;
     Ok(conn.last_insert_rowid())
 }
 
-fn insert_pieces(metainfo: &Metainfo, archive_id: i64, conn: &mut Connection) -> Result<(), rusqlite::Error> {
+fn insert_pieces(
+    metainfo: &Metainfo,
+    archive_id: i64,
+    conn: &mut Connection,
+) -> Result<(), rusqlite::Error> {
     let tx = conn.transaction()?;
     {
-       let mut stmt = tx.prepare(INSERT_PIECE)?;
+        let mut stmt = tx.prepare(INSERT_PIECE)?;
         let pieces: &[u8] = metainfo.info.pieces.as_ref();
-        let mut offset = 0;
-        for sha1 in pieces.chunks(20) {
-            stmt.execute(&[&archive_id, &offset, &sha1.to_hex().to_uppercase()])?;
-            offset += 1;
+        let mut index = 0;
+        for hash in pieces.chunks(20) {
+            stmt.execute(&[&archive_id, &index, &hash.to_hex()])?;
+            index += 1;
         }
     }
     tx.commit()?;

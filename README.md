@@ -20,3 +20,7 @@ piece count:   1238
 Ok(())
 
 ```
+or
+```
+$ find . -name *.torrent -exec ./target/release/examples/import {} \;
+```

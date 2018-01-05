@@ -29,8 +29,8 @@ fn print_info(buffer: Vec<u8>) -> Result<(), io::Error> {
             println!("{}", &metainfo);
             let pieces: &[u8] = metainfo.info.pieces.as_ref();
             let mut index = 0;
-            for sha1 in pieces.chunks(SHA1_LEN) {
-                println!("{:>6} {}", index, sha1.to_hex().to_uppercase());
+            for hash in pieces.chunks(SHA1_LEN) {
+                println!("{:>6} {}", index, hash.to_hex());
                 index += 1;
             }
         }

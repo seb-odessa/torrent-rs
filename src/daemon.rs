@@ -60,9 +60,9 @@ impl fmt::Display for Daemon {
         for (_, metainfo) in &self.torrents {
             writeln!(fmt, "{}", metainfo)?;
         }
-        for (sha1, peers) in &self.peers {
+        for (hash, peers) in &self.peers {
             for peer in peers {
-                writeln!(fmt, "SHA1: {} => {}", sha1.to_hex().to_uppercase(), peer)?;
+                writeln!(fmt, "SHA1: {} => {}", hash.to_hex(), peer)?;
             }
         }
         write!(fmt, "")

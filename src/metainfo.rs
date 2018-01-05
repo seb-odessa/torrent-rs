@@ -81,7 +81,7 @@ impl Metainfo {
     }
     pub fn get_info_hash(&self) -> String {
         let info_hash: hash::Sha1 = self.info_hash.clone().unwrap_or_default().into();
-        info_hash.to_hex().to_uppercase()
+        info_hash.to_hex()
     }
 }
 impl fmt::Display for Metainfo {
